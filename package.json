@@ -15,5 +15,8 @@
     "astro": "^5.17.1",
     "microcms-js-sdk": "^3.3.0",
     "sharp": "^0.34.3"
+  },
+  "devDependencies": {
+    "@astrojs/cloudflare": "^12.6.12"
   }
 }

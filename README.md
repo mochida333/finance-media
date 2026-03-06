@@ -17,6 +17,12 @@ MICROCMS_SERVICE_DOMAIN=xxxxxx
 MICROCMS_API_KEY=xxxxxxxxxxxxxxxx
 ```
 
+本番（Cloudflare Pages）では、以下も設定すると sitemap/RSS のURLが正しくなります。
+
+```env
+SITE_URL=https://your-domain.example
+```
+
 ## microCMS 側の想定（最低限）
 
 ### エンドポイント
@@ -57,6 +63,19 @@ MICROCMS_API_KEY=xxxxxxxxxxxxxxxx
 | `npm run dev` | 開発サーバ起動（`http://localhost:4321/`） |
 | `npm run build` | 本番ビルド（`./dist/`） |
 | `npm run preview` | ビルド結果のプレビュー |
+
+## Cloudflare Pages（SSG）にデプロイ
+
+Cloudflare Pages のプロジェクト設定で以下を指定します。
+
+- **Build command**: `npm run build`
+- **Build output directory**: `dist`
+
+Environment variables に以下を登録してください。
+
+- `MICROCMS_SERVICE_DOMAIN`
+- `MICROCMS_API_KEY`
+- `SITE_URL`（任意だが推奨）
 
 ## 実装メモ
 
