@@ -1,0 +1,89 @@
+---
+import BlogPost from "../../layouts/BlogPost.astro";
+import Pagination from "../../components/Pagination.astro";
+import { getBlogs, getCategories, getCategoryDetail } from "../../library/microcms";
+import type { Blog } from "../../library/microcms";
+import PostCard from "../../components/PostCard.astro";
+
+const PER_PAGE = 9;
+
+export async function getStaticPaths() {
+  const ids: string[] = [];
+  let offset = 0;
+  while (true) {
+    const res = await getCategories({ fields: ["id"], limit: 100, offset });
+    ids.push(...res.contents.map((c) => c.id));
+    offset += res.limit;
+    if (offset >= res.totalCount) break;
+  }
+  return ids.map((id) => ({ params: { id } }));
+}
+
+const { id } = Astro.params;
+if (!id) throw new Error("Missing route param: id");
+
+const category = await getCategoryDetail(id, { fields: ["id", "name"] });
+
+const filters = `category[equals]${id}[or]category[contains]${id}`;
+const response = await getBlogs({
+  fields: ["id", "title", "eyecatch", "publishedAt", "category"],
+  depth: 1,
+  filters,
+  limit: PER_PAGE,
+  offset: 0,
+});
+
+const totalPages = Math.ceil(response.totalCount / PER_PAGE);
+
+const posts = response.contents as Blog[];
+---
+
+<BlogPost title={`カテゴリ: ${category.name ?? category.id}`} description="andco finance" pubDate={new Date()}>
+  <main>
+    <ul class="grid">
+      {posts.map((post) => {
+        const categories = Array.isArray(post.category)
+          ? post.category
+          : post.category
+          ? [post.category]
+          : [];
+        return (
+          <PostCard
+            id={post.id}
+            title={post.title}
+            eyecatchUrl={post.eyecatch?.url}
+            publishedAt={post.publishedAt}
+            category={post.category}
+          />
+        );
+      })}
+    </ul>
+    <Pagination currentPage={1} totalPages={totalPages} basePath={`/category/${id}`} />
+  </main>
+</BlogPost>
+
+<style>
+  main {
+    margin: auto;
+    padding: 1em;
+    width: 1200px;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+  .grid {
+    width: stretch;
+    list-style: none;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+    padding: 0;
+    margin: 0;
+  }
+
+  @media (max-width: 768px) {
+    .grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
+

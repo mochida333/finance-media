@@ -1,0 +1,63 @@
+---
+import BlogPost from "../layouts/BlogPost.astro";
+import type { Blog } from "../library/microcms";
+import PostCard from "../components/PostCard.astro";
+import { getBlogs } from "../library/microcms";
+
+const PER_PAGE = 9;
+
+const response = await getBlogs({
+  fields: ["id", "title", "eyecatch", "publishedAt", "category"],
+  depth: 1,
+  limit: PER_PAGE,
+  offset: 0,
+});
+
+---
+
+<BlogPost title="新着記事" description="andco finance" pubDate={new Date()}>
+  <main>
+    <ul>
+      {
+        response.contents.map((content: Blog) => (
+          <PostCard
+            id={content.id}
+            title={content.title}
+            eyecatchUrl={content.eyecatch?.url}
+            publishedAt={content.publishedAt}
+            category={content.category}
+          />
+        ))
+      }
+    </ul>
+  </main>
+</BlogPost>
+
+<style>
+  main {
+    margin: auto;
+    padding: 1em;
+    width: 1200px;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+
+  ul {
+    width: stretch;
+    list-style: none;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+    padding-left: 0;
+  }
+
+  @media (max-width: 768px) {
+    ul {
+      display: block;
+    }
+    :global(.post-card) {
+      margin-bottom: 1rem;
+    }
+  }
+
+</style>

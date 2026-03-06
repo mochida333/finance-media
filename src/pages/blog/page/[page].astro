@@ -1,0 +1,92 @@
+---
+import BaseHead from '../../../components/BaseHead.astro';
+import Footer from '../../../components/Footer.astro';
+import Header from '../../../components/Header.astro';
+import Pagination from '../../../components/Pagination.astro';
+import PostCard from '../../../components/PostCard.astro';
+import { SITE_DESCRIPTION, SITE_TITLE } from '../../../consts';
+import { getBlogs } from '../../../library/microcms';
+
+const PER_PAGE = 9;
+
+export async function getStaticPaths() {
+	const PER_PAGE = 9;
+	const res = await getBlogs({ fields: ['id'], limit: 1, offset: 0 });
+	const totalPages = Math.ceil(res.totalCount / PER_PAGE);
+	const pages = Array.from({ length: totalPages }, (_, i) => i + 1).filter((p) => p >= 2);
+	return pages.map((page) => ({ params: { page: String(page) } }));
+}
+
+const pageParam = Astro.params.page;
+const page = Number(pageParam);
+if (!Number.isFinite(page) || page < 2) {
+	throw new Error(`Invalid page param: ${pageParam}`);
+}
+
+const offset = (page - 1) * PER_PAGE;
+
+const response = await getBlogs({
+	fields: ['id', 'title', 'eyecatch', 'publishedAt', 'category'],
+	depth: 1,
+	limit: PER_PAGE,
+	offset,
+});
+
+const totalPages = Math.ceil(response.totalCount / PER_PAGE);
+const posts = response.contents;
+---
+
+<!doctype html>
+<html lang="en">
+	<head>
+		<BaseHead title={SITE_TITLE} description={SITE_DESCRIPTION} />
+		<style>
+			main {
+				margin: auto;
+				padding: 1em;
+				width: 1200px;
+				max-width: 100%;
+				box-sizing: border-box;
+			}
+			.grid {
+				width: stretch;
+				list-style: none;
+				display: grid;
+				grid-template-columns: repeat(3, 1fr);
+				gap: 1rem;
+				padding: 0;
+				margin: 0;
+			}
+			@media (max-width: 720px) {
+				.grid {
+					grid-template-columns: 1fr;
+				}
+			}
+		</style>
+	</head>
+	<body>
+		<Header />
+		<main>
+			<section>
+				<ul class="grid">
+					{
+						posts.map((post) => {
+							return (
+								<PostCard
+									id={post.id}
+									title={post.title}
+									eyecatchUrl={post.eyecatch?.url}
+									publishedAt={post.publishedAt}
+									category={post.category}
+								/>
+							);
+						})
+					}
+				</ul>
+				<Pagination currentPage={page} totalPages={totalPages} basePath="/blog" />
+			</section>
+		</main>
+		<Footer />
+	</body>
+</html>
+

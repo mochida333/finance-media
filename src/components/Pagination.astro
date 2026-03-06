@@ -1,0 +1,95 @@
+---
+interface Props {
+  currentPage: number;
+  totalPages: number;
+  /**
+   * ページ1のURL。例: "/blog/"
+   * page>=2 は `${basePath}/page/${n}/` になります。
+   */
+  basePath: string;
+  prevLabel?: string;
+  nextLabel?: string;
+}
+
+const {
+  currentPage,
+  totalPages,
+  basePath,
+  prevLabel = "前へ",
+  nextLabel = "次へ",
+} = Astro.props as Props;
+
+const normalizedBase = basePath === "/" ? "" : basePath.replace(/\/$/, "");
+
+const hrefForPage = (p: number) => {
+  if (p <= 1) return normalizedBase ? `${normalizedBase}/` : "/";
+  return normalizedBase ? `${normalizedBase}/page/${p}/` : `/page/${p}/`;
+};
+
+const prevHref = currentPage > 1 ? hrefForPage(currentPage - 1) : null;
+const nextHref = currentPage < totalPages ? hrefForPage(currentPage + 1) : null;
+---
+
+{totalPages > 1 ? (
+  <nav class="pagination" aria-label="pagination">
+    {prevHref ? (
+      <a class="page-link" href={prevHref}>
+        {prevLabel}
+      </a>
+    ) : (
+      <span class="page-link is-disabled">{prevLabel}</span>
+    )}
+
+    <span class="page-info">
+      {currentPage} / {totalPages}
+    </span>
+
+    {nextHref ? (
+      <a class="page-link" href={nextHref}>
+        {nextLabel}
+      </a>
+    ) : (
+      <span class="page-link is-disabled">{nextLabel}</span>
+    )}
+  </nav>
+) : null}
+
+<style>
+  .pagination {
+    margin-top: 1.5rem;
+    display: flex;
+    gap: 0.75rem;
+    justify-content: center;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+
+  .page-link {
+    display: inline-block;
+    padding: 0.4rem 0.7rem;
+    border-radius: 8px;
+    background: #f0f0f0;
+    color: #222;
+    text-decoration: none;
+  }
+
+  .page-link.is-disabled {
+    opacity: 0.5;
+    pointer-events: none;
+  }
+
+  .page-info {
+    color: rgb(var(--gray));
+  }
+
+  @media (max-width: 768px) {
+    .pagination {
+      gap: 0.5rem;
+    }
+
+    .page-link {
+      padding: 0.35rem 0.6rem;
+    }
+  }
+</style>
+

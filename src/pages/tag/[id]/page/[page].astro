@@ -1,0 +1,153 @@
+---
+import BlogPost from '../../../../layouts/BlogPost.astro';
+import Pagination from '../../../../components/Pagination.astro';
+import { getBlogs, getTagDetail } from '../../../../library/microcms';
+import type { Blog } from '../../../../library/microcms';
+import PostCard from '../../../../components/PostCard.astro';
+
+const PER_PAGE = 9;
+
+export async function getStaticPaths() {
+	function toTagId(t: unknown): string | null {
+		if (!t) return null;
+		if (typeof t === 'string') return t;
+		if (typeof t === 'object') {
+			const obj = t as { id?: string; name?: string };
+			return obj.id ?? obj.name ?? null;
+		}
+		return null;
+	}
+
+	const tagIds = new Set<string>();
+	let offset = 0;
+
+	while (true) {
+		const res = await getBlogs({
+			fields: ['id', 'tag', 'tags'],
+			depth: 1,
+			limit: 100,
+			offset,
+		});
+
+		for (const post of res.contents as any[]) {
+			const rawFromTags = Array.isArray(post.tags) ? post.tags : post.tags ? [post.tags] : [];
+			const rawFromTag = Array.isArray(post.tag) ? post.tag : post.tag ? [post.tag] : [];
+			for (const t of [...rawFromTags, ...rawFromTag]) {
+				const id = toTagId(t);
+				if (id) tagIds.add(id);
+			}
+		}
+
+		offset += res.limit;
+		if (offset >= res.totalCount) break;
+	}
+
+	const paths: Array<{ params: { id: string; page: string } }> = [];
+	const perPage = 9;
+
+	for (const tagId of tagIds) {
+		const filters = `tag[equals]${tagId}[or]tag[contains]${tagId}[or]tags[equals]${tagId}[or]tags[contains]${tagId}`;
+		const res = await getBlogs({ fields: ['id'], filters, limit: 1, offset: 0 });
+		const totalPages = Math.ceil(res.totalCount / perPage);
+		for (let page = 2; page <= totalPages; page++) {
+			paths.push({ params: { id: encodeURIComponent(tagId), page: String(page) } });
+		}
+	}
+
+	return paths;
+}
+
+const rawIdParam = Astro.params.id;
+const pageParam = Astro.params.page;
+const page = Number(pageParam);
+
+if (!rawIdParam) throw new Error('Missing route param: id');
+if (!Number.isFinite(page) || page < 2) throw new Error(`Invalid page param: ${pageParam}`);
+
+const tagId = decodeURIComponent(rawIdParam);
+const tagIdEncoded = encodeURIComponent(tagId);
+
+let tagName: string | undefined;
+try {
+	const tag = await getTagDetail(tagId, { fields: ['name'] });
+	tagName = tag.name ?? tagId;
+} catch {
+	tagName = tagId;
+}
+
+const filters = `tag[equals]${tagId}[or]tag[contains]${tagId}[or]tags[equals]${tagId}[or]tags[contains]${tagId}`;
+const response = await getBlogs({
+	fields: ['id', 'title', 'eyecatch', 'publishedAt', 'category'],
+	depth: 1,
+	filters,
+	limit: PER_PAGE,
+	offset: (page - 1) * PER_PAGE,
+});
+
+const totalPages = Math.ceil(response.totalCount / PER_PAGE);
+const posts = response.contents as Blog[];
+---
+
+<BlogPost title={`タグ: ${tagName} (ページ ${page})`} description="andco finance" pubDate={new Date()}>
+  <main>
+    <ul class="grid">
+      {posts.map((post) => {
+          return(
+            <PostCard
+              id={post.id}
+              title={post.title}
+              eyecatchUrl={post.eyecatch?.url}
+              publishedAt={post.publishedAt}
+              category={post.category}
+            />
+          )
+      })}
+    </ul>
+
+    <Pagination currentPage={page} totalPages={totalPages} basePath={`/tag/${tagIdEncoded}`} />
+  </main>
+</BlogPost>
+
+<style>
+  main {
+    margin: auto;
+    padding: 1em;
+    width: 1200px;
+    max-width: 100%;
+  }
+  .grid {
+    width: stretch;
+    list-style: none;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+    padding: 0;
+    margin: 0;
+  }
+  .card-main {
+    display: block;
+    color: #222;
+    text-decoration: none;
+    padding: 8px;
+    border-radius: 8px;
+    background-color: #f0f0f0;
+    transition: background-color 0.3s ease;
+  }
+  .card-main:hover {
+    background-color: #e0e0e0;
+  }
+  .title {
+    font-size: 1.2rem;
+    font-weight: bold;
+    margin: 0;
+  }
+  .category {
+    font-size: 0.85rem;
+    color: #444;
+    margin: 0.25rem 0 0;
+  }
+  .meta-link {
+    color: inherit;
+    text-decoration: underline;
+  }
+</style>

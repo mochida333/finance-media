@@ -1,0 +1,71 @@
+---
+export type TocItem = {
+  id: string;
+  text: string;
+};
+
+interface Props {
+  items: TocItem[];
+  title?: string;
+}
+
+const { items, title = "目次" } = Astro.props as Props;
+---
+
+{items.length ? (
+  <nav class="toc" aria-label="table of contents">
+    <div class="toc-title">{title}</div>
+    <ol class="toc-list">
+      {items.map((item) => (
+        <li class="toc-item">
+          <a class="toc-link" href={`#${item.id}`}>{item.text}</a>
+        </li>
+      ))}
+    </ol>
+  </nav>
+) : null}
+
+<style>
+  .toc {
+    width: min(500px, 100%);
+    margin: 1rem auto 1.5rem;
+    padding: 1rem;
+    border-radius: 12px;
+    background: #f6f6f6;
+  }
+
+  .toc-title {
+    font-weight: 700;
+    margin-bottom: 0.75rem;
+  }
+
+  .toc-list {
+    margin: 0;
+    padding-left: 1.25rem;
+  }
+
+  .toc-item {
+    margin: 0.25rem 0;
+  }
+
+  .toc-link {
+    color: inherit;
+    font-size: 1rem;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+  .toc-link:hover {
+    opacity: 0.85;
+  }
+
+  @media (max-width: 768px) {
+    .toc {
+      padding: 0.85rem;
+      margin: 0.75rem auto 1.25rem;
+    }
+    .toc-link {
+      font-size: 0.95rem;
+    }
+  }
+</style>
+
