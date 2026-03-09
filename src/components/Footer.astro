@@ -1,4 +1,5 @@
 ---
+import { SITE_TITLE } from "../consts";
 import { getPages, type Page } from "../library/microcms";
 
 const today = new Date();
@@ -28,7 +29,7 @@ const pageLinks = headerPages
 			</li>
 		))}
 	</ul>
-	&copy; {today.getFullYear()} Your name here. All rights reserved.
+	&copy; {today.getFullYear()} { SITE_TITLE }. All rights reserved.
 </footer>
 <style>
 	footer {
