@@ -1,6 +1,24 @@
 ---
 import { SITE_TITLE } from '../consts';
 import HeaderLink from './HeaderLink.astro';
+import { getPages } from "../library/microcms";
+import type { Page } from "../library/microcms";
+
+let headerPages: Page[] = [];
+try {
+	const res = await getPages({ limit: 100 });
+	headerPages = res.contents ?? [];
+} catch {
+	// pages エンドポイント未作成/未設定でもヘッダーを壊さない
+	headerPages = [];
+}
+
+const pageLinks = headerPages
+	.filter((p) => Boolean(p.showInHeader))
+	.map((p) => ({
+		href: `/page/${p.id}/`,
+		label: (p.title ?? p.id) as string,
+	}));
 ---
 
 <header>
@@ -10,6 +28,9 @@ import HeaderLink from './HeaderLink.astro';
 			<HeaderLink href="/">Home</HeaderLink>
 			<HeaderLink href="/blog">Blog</HeaderLink>
 			<HeaderLink href="/about">About</HeaderLink>
+			{pageLinks.map((p) => (
+				<HeaderLink href={p.href}>{p.label}</HeaderLink>
+			))}
 		</div>
 		<div class="social-links">
 			<a href="https://m.webtoo.ls/@astro" target="_blank">

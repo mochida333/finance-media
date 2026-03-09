@@ -14,6 +14,12 @@ export type Tag = {
   name?: string;
 } & MicroCMSListContent;
 
+export type Page = {
+  title?: string;
+  content?: string;
+  showInHeader?: boolean;
+} & MicroCMSListContent;
+
 // 型定義
 export type Blog = {
   title: string;
@@ -68,6 +74,21 @@ export const getTagDetail = async (
 ) => {
   return await client.getListDetail<Tag>({
     endpoint: "tags",
+    contentId,
+    queries,
+  });
+};
+
+export const getPages = async (queries?: MicroCMSQueries) => {
+  return await client.getList<Page>({ endpoint: "pages", queries });
+};
+
+export const getPageDetail = async (
+  contentId: string,
+  queries?: MicroCMSQueries
+) => {
+  return await client.getListDetail<Page>({
+    endpoint: "pages",
     contentId,
     queries,
   });
