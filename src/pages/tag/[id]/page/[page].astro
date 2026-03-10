@@ -1,53 +1,20 @@
 ---
 import BlogPost from '../../../../layouts/BlogPost.astro';
 import Pagination from '../../../../components/Pagination.astro';
-import { getBlogs, getTagDetail } from '../../../../library/microcms';
-import type { Blog } from '../../../../library/microcms';
 import PostCard from '../../../../components/PostCard.astro';
+import { buildTagFilters, collectTagIdsFromAllPosts, getPostCards, getTagNameSafe } from '../../../../library/cms';
 
 const PER_PAGE = 9;
 
 export async function getStaticPaths() {
-	function toTagId(t: unknown): string | null {
-		if (!t) return null;
-		if (typeof t === 'string') return t;
-		if (typeof t === 'object') {
-			const obj = t as { id?: string; name?: string };
-			return obj.id ?? obj.name ?? null;
-		}
-		return null;
-	}
-
-	const tagIds = new Set<string>();
-	let offset = 0;
-
-	while (true) {
-		const res = await getBlogs({
-			fields: ['id', 'tag', 'tags'],
-			depth: 1,
-			limit: 100,
-			offset,
-		});
-
-		for (const post of res.contents as any[]) {
-			const rawFromTags = Array.isArray(post.tags) ? post.tags : post.tags ? [post.tags] : [];
-			const rawFromTag = Array.isArray(post.tag) ? post.tag : post.tag ? [post.tag] : [];
-			for (const t of [...rawFromTags, ...rawFromTag]) {
-				const id = toTagId(t);
-				if (id) tagIds.add(id);
-			}
-		}
-
-		offset += res.limit;
-		if (offset >= res.totalCount) break;
-	}
+	const tagIds = await collectTagIdsFromAllPosts();
 
 	const paths: Array<{ params: { id: string; page: string } }> = [];
 	const perPage = 9;
 
 	for (const tagId of tagIds) {
-		const filters = `tag[equals]${tagId}[or]tag[contains]${tagId}[or]tags[equals]${tagId}[or]tags[contains]${tagId}`;
-		const res = await getBlogs({ fields: ['id'], filters, limit: 1, offset: 0 });
+		const filters = buildTagFilters(tagId);
+		const res = await getPostCards({ filters, limit: 1, offset: 0 });
 		const totalPages = Math.ceil(res.totalCount / perPage);
 		for (let page = 2; page <= totalPages; page++) {
 			paths.push({ params: { id: encodeURIComponent(tagId), page: String(page) } });
@@ -67,25 +34,17 @@ if (!Number.isFinite(page) || page < 2) throw new Error(`Invalid page param: ${p
 const tagId = decodeURIComponent(rawIdParam);
 const tagIdEncoded = encodeURIComponent(tagId);
 
-let tagName: string | undefined;
-try {
-	const tag = await getTagDetail(tagId, { fields: ['name'] });
-	tagName = tag.name ?? tagId;
-} catch {
-	tagName = tagId;
-}
+const tagName = await getTagNameSafe(tagId);
 
-const filters = `tag[equals]${tagId}[or]tag[contains]${tagId}[or]tags[equals]${tagId}[or]tags[contains]${tagId}`;
-const response = await getBlogs({
-	fields: ['id', 'title', 'eyecatch', 'publishedAt', 'category'],
-	depth: 1,
+const filters = buildTagFilters(tagId);
+const response = await getPostCards({
 	filters,
 	limit: PER_PAGE,
 	offset: (page - 1) * PER_PAGE,
 });
 
 const totalPages = Math.ceil(response.totalCount / PER_PAGE);
-const posts = response.contents as Blog[];
+const posts = response.cards;
 ---
 
 <BlogPost title={`タグ: ${tagName} (ページ ${page})`} description="andco finance" pubDate={new Date()}>
@@ -96,9 +55,9 @@ const posts = response.contents as Blog[];
             <PostCard
               id={post.id}
               title={post.title}
-              eyecatchUrl={post.eyecatch?.url}
+              eyecatchUrl={post.eyecatchUrl}
               publishedAt={post.publishedAt}
-              category={post.category}
+              category={post.categories}
             />
           )
       })}

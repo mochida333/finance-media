@@ -1,95 +1,56 @@
-import type { MicroCMSQueries, MicroCMSListContent } from "microcms-js-sdk";
+import type { MicroCMSQueries } from "microcms-js-sdk";
 import { createClient } from "microcms-js-sdk";
 
+const serviceDomain = import.meta.env.MICROCMS_SERVICE_DOMAIN;
+const apiKey = import.meta.env.MICROCMS_API_KEY;
+const enabled = Boolean(
+  typeof serviceDomain === "string" &&
+    serviceDomain.trim().length &&
+    typeof apiKey === "string" &&
+    apiKey.trim().length
+);
+
 const client = createClient({
-  serviceDomain: import.meta.env.MICROCMS_SERVICE_DOMAIN,
-  apiKey: import.meta.env.MICROCMS_API_KEY,
+  serviceDomain: serviceDomain ?? "",
+  apiKey: apiKey ?? "",
 });
 
-export type Category = {
-  name?: string;
-} & MicroCMSListContent;
+export { client };
+export type { MicroCMSQueries };
 
-export type Tag = {
-  name?: string;
-} & MicroCMSListContent;
-
-export type Page = {
-  title?: string;
-  content?: string;
-  showInHeader?: boolean;
-} & MicroCMSListContent;
-
-// 型定義
-export type Blog = {
-  title: string;
-  content: string;
-  eyecatch: {
-    url: string;
-    height: number;
-    width: number;
-  };
-  category?: Category | Category[];
-  tags?: Array<string | Tag>;
-  tag?: Tag;
-} & MicroCMSListContent;
-
-export const getBlogs = async (queries?: MicroCMSQueries) => {
-  return await client.getList<Blog>({ endpoint: "blogs", queries });
+type MicroCMSListResponse<T> = {
+  contents: T[];
+  totalCount: number;
+  offset: number;
+  limit: number;
 };
 
-export const getBlogDetail = async (
+const emptyListResponse = <T>(queries?: MicroCMSQueries): MicroCMSListResponse<T> => ({
+  contents: [],
+  totalCount: 0,
+  offset: typeof queries?.offset === "number" ? queries.offset : 0,
+  limit: typeof queries?.limit === "number" ? queries.limit : 0,
+});
+
+export const getList = async <T>(endpoint: string, queries?: MicroCMSQueries) => {
+  if (!enabled) return emptyListResponse<T>(queries);
+  try {
+    return await client.getList<T>({ endpoint, queries });
+  } catch {
+    // SSG/ビルド時に microCMS へ到達できない環境（未設定/ネットワーク制限）でも落とさない
+    return emptyListResponse<T>(queries);
+  }
+};
+
+export const getListDetail = async <T>(
+  endpoint: string,
   contentId: string,
   queries?: MicroCMSQueries
 ) => {
-  return await client.getListDetail<Blog>({
-    endpoint: "blogs",
-    contentId,
-    queries,
-  });
-};
-
-export const getCategories = async (queries?: MicroCMSQueries) => {
-  return await client.getList<Category>({ endpoint: "categories", queries });
-};
-
-export const getCategoryDetail = async (
-  contentId: string,
-  queries?: MicroCMSQueries
-) => {
-  return await client.getListDetail<Category>({
-    endpoint: "categories",
-    contentId,
-    queries,
-  });
-};
-
-export const getTags = async (queries?: MicroCMSQueries) => {
-  return await client.getList<Tag>({ endpoint: "tags", queries });
-};
-
-export const getTagDetail = async (
-  contentId: string,
-  queries?: MicroCMSQueries
-) => {
-  return await client.getListDetail<Tag>({
-    endpoint: "tags",
-    contentId,
-    queries,
-  });
-};
-
-export const getPages = async (queries?: MicroCMSQueries) => {
-  return await client.getList<Page>({ endpoint: "pages", queries });
-};
-
-export const getPageDetail = async (
-  contentId: string,
-  queries?: MicroCMSQueries
-) => {
-  return await client.getListDetail<Page>({
-    endpoint: "pages",
-    contentId,
-    queries,
-  });
+  if (!enabled) {
+    throw new Error(
+      "microCMS is not configured. Set MICROCMS_SERVICE_DOMAIN and MICROCMS_API_KEY."
+    );
+  }
+  return await client.getListDetail<T>({ endpoint, contentId, queries });
 };

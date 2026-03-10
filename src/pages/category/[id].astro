@@ -1,59 +1,40 @@
 ---
 import BlogPost from "../../layouts/BlogPost.astro";
 import Pagination from "../../components/Pagination.astro";
-import { getBlogs, getCategories, getCategoryDetail } from "../../library/microcms";
-import type { Blog } from "../../library/microcms";
+import { buildCategoryFilters, getCategoryIds, getCategoryLabel, getPostCards } from "../../library/cms";
 import PostCard from "../../components/PostCard.astro";
 
 const PER_PAGE = 9;
 
 export async function getStaticPaths() {
-  const ids: string[] = [];
-  let offset = 0;
-  while (true) {
-    const res = await getCategories({ fields: ["id"], limit: 100, offset });
-    ids.push(...res.contents.map((c) => c.id));
-    offset += res.limit;
-    if (offset >= res.totalCount) break;
-  }
+  const ids = await getCategoryIds();
   return ids.map((id) => ({ params: { id } }));
 }
 
 const { id } = Astro.params;
 if (!id) throw new Error("Missing route param: id");
 
-const category = await getCategoryDetail(id, { fields: ["id", "name"] });
+const categoryLabel = await getCategoryLabel(id);
 
-const filters = `category[equals]${id}[or]category[contains]${id}`;
-const response = await getBlogs({
-  fields: ["id", "title", "eyecatch", "publishedAt", "category"],
-  depth: 1,
-  filters,
-  limit: PER_PAGE,
-  offset: 0,
-});
+const filters = buildCategoryFilters(id);
+const response = await getPostCards({ filters, limit: PER_PAGE, offset: 0 });
 
 const totalPages = Math.ceil(response.totalCount / PER_PAGE);
 
-const posts = response.contents as Blog[];
+const posts = response.cards;
 ---
 
-<BlogPost title={`カテゴリ: ${category.name ?? category.id}`} description="andco finance" pubDate={new Date()}>
+<BlogPost title={`カテゴリ: ${categoryLabel}`} description="andco finance" pubDate={new Date()}>
   <main>
     <ul class="grid">
       {posts.map((post) => {
-        const categories = Array.isArray(post.category)
-          ? post.category
-          : post.category
-          ? [post.category]
-          : [];
         return (
           <PostCard
             id={post.id}
             title={post.title}
-            eyecatchUrl={post.eyecatch?.url}
+            eyecatchUrl={post.eyecatchUrl}
             publishedAt={post.publishedAt}
-            category={post.category}
+            category={post.categories}
           />
         );
       })}

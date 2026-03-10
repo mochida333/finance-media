@@ -1,26 +1,10 @@
 ---
 import BlogPost from "../../layouts/BlogPost.astro";
-import { getPageDetail, getPages } from "../../library/microcms";
-import type { Page } from "../../library/microcms";
+import { getPageDetail, getPageIdsSafe } from "../../library/cms";
 
 export async function getStaticPaths() {
-  try {
-    const ids: string[] = [];
-    let offset = 0;
-    const limit = 100;
-
-    while (true) {
-      const res = await getPages({ fields: ["id"], limit, offset });
-      ids.push(...res.contents.map((c) => c.id));
-      offset += res.limit;
-      if (offset >= res.totalCount) break;
-    }
-
-    return ids.map((id) => ({ params: { id } }));
-  } catch {
-    // pages エンドポイント未作成/未設定でもビルドを壊さない
-    return [];
-  }
+  const ids = await getPageIdsSafe();
+  return ids.map((id) => ({ params: { id } }));
 }
 
 const { id } = Astro.params;
@@ -28,7 +12,7 @@ if (!id) {
   throw new Error("Missing route param: id");
 }
 
-const page: Page = await getPageDetail(id);
+const page = await getPageDetail(id);
 ---
 
 <BlogPost
@@ -36,7 +20,7 @@ const page: Page = await getPageDetail(id);
   description={page.title ?? page.id ?? "Page"}
   pubDate={new Date()}
 >
-  <div class="body" set:html={page.content ?? ""} />
+  <div class="body" set:html={page.contentHtml ?? ""} />
 </BlogPost>
 
 <style>

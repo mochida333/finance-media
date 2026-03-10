@@ -1,17 +1,9 @@
 ---
 import { SITE_TITLE } from '../consts';
 import HeaderLink from './HeaderLink.astro';
-import { getPages } from "../library/microcms";
-import type { Page } from "../library/microcms";
+import { getHeaderPagesSafe } from "../library/cms";
 
-let headerPages: Page[] = [];
-try {
-	const res = await getPages({ limit: 100 });
-	headerPages = res.contents ?? [];
-} catch {
-	// pages エンドポイント未作成/未設定でもヘッダーを壊さない
-	headerPages = [];
-}
+const headerPages = await getHeaderPagesSafe();
 
 const pageLinks = headerPages
 	.filter((p) => Boolean(p.showInHeader))

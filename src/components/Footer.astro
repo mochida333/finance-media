@@ -1,17 +1,10 @@
 ---
 import { SITE_TITLE } from "../consts";
-import { getPages, type Page } from "../library/microcms";
+import { getHeaderPagesSafe } from "../library/cms";
 
 const today = new Date();
 
-let headerPages: Page[] = [];
-try {
-	const res = await getPages({ limit: 100 });
-	headerPages = res.contents ?? [];
-} catch {
-	// pages エンドポイント未作成/未設定でもヘッダーを壊さない
-	headerPages = [];
-}
+const headerPages = await getHeaderPagesSafe();
 
 const pageLinks = headerPages
 	.filter((p) => Boolean(p.showInHeader))

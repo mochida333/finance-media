@@ -1,19 +1,10 @@
 ---
 import BlogPost from "../layouts/BlogPost.astro";
 import TableOfContents from "../components/TableOfContents.astro";
-import { getBlogDetail, getBlogs } from "../library/microcms";
-import type { Blog } from "../library/microcms";
+import { getAllPostIds, getPostDetail } from "../library/cms";
 
 export async function getStaticPaths() {
-  const ids: string[] = [];
-  let offset = 0;
-  const limit = 100;
-  while (true) {
-    const res = await getBlogs({ fields: ["id"], limit, offset });
-    ids.push(...res.contents.map((c) => c.id));
-    offset += res.limit;
-    if (offset >= res.totalCount) break;
-  }
+  const ids = await getAllPostIds();
   return ids.map((id) => ({ params: { id } }));
 }
 
@@ -22,7 +13,7 @@ if (!id) {
   throw new Error("Missing route param: id");
 }
 
-const post: Blog = await getBlogDetail(id, { depth: 1 });
+const post = await getPostDetail(id);
 
 const buildToc = (html: string) => {
   const items: Array<{ id: string; text: string }> = [];
@@ -52,37 +43,9 @@ const buildToc = (html: string) => {
   return { html: withIds, items };
 };
 
-const { html: contentHtml, items: tocItems } = buildToc(post.content ?? "");
-
-const categories = Array.isArray(post.category)
-  ? post.category
-  : post.category
-  ? [post.category]
-  : [];
-
-const tagsRawFromTagsField = Array.isArray(post.tags) ? post.tags : post.tags ? [post.tags] : [];
-const tagsRawFromTagField = Array.isArray(post.tag) ? post.tag : post.tag ? [post.tag] : [];
-
-const toTagChip = (t: unknown): { id: string; label: string } | null => {
-  if (!t) return null;
-  if (typeof t === "string") return { id: t, label: t };
-  if (typeof t === "object") {
-    const obj = t as { id?: string; name?: string };
-    const id = obj.id ?? obj.name;
-    if (!id) return null;
-    return { id, label: obj.name ?? obj.id ?? id };
-  }
-  return null;
-};
-
-const tags = Array.from(
-  new Map(
-    [...tagsRawFromTagsField, ...tagsRawFromTagField]
-      .map(toTagChip)
-      .filter((x): x is { id: string; label: string } => Boolean(x))
-      .map((x) => [x.id, x])
-  ).values()
-);
+const { html: contentHtml, items: tocItems } = buildToc(post.contentHtml ?? "");
+const categories = post.categories ?? [];
+const tags = post.tags ?? [];
 ---
 
 <BlogPost title={post.title} description={post.title} pubDate={new Date()}>

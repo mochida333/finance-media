@@ -24,25 +24,26 @@ MICROCMS_MANAGEMENT_API_KEY=xxxxxxxxxxxxxxxx
 SITE_URL=https://your-domain.example
 ```
 
+> 補足: `MICROCMS_SERVICE_DOMAIN` / `MICROCMS_API_KEY` が未設定でも `npm run build` は通ります（一覧などは空表示になります）。
+
 ## microCMS 側の想定（最低限）
 
 ### エンドポイント
-- **`blogs`**: 記事
-- **`categories`**: カテゴリ
-- **`tags`**: タグ（タグをコンテンツ参照で持つ場合）
-- **`pages`**: 固定ページ（任意。ヘッダーに出したい場合など）
+- **記事**（デフォルト: `blogs`）
+- **カテゴリ**（デフォルト: `categories`）
+- **タグ**（任意。デフォルト: `tags`）
+- **固定ページ**（任意。デフォルト: `pages`）
 
-### `blogs` の主なフィールド（例）
+### 記事の主なフィールド（デフォルト名）
 - **`title`**: テキスト
 - **`content`**: リッチエディタ（HTMLとして表示）
-- **`eyecatch`**: 画像
+- **`eyecatch`**: 画像（`{ url, width, height }` を想定）
 - **`publishedAt`**: 公開日時（microCMS標準）
-- **`category`**: コンテンツ参照（参照先: `categories`）
-  - 単数/複数どちらでも表示できるように実装しています
-- **タグ**
-  - 文字列配列なら `tags`
-  - 参照（コンテンツ参照）なら `tag`
-  - どちらで来ても表示できるように実装しています
+- **`category`**: コンテンツ参照（参照先: カテゴリ）
+  - 単数/複数どちらでも表示できるようにしています
+- **タグ**（どちらの形でも吸収します）
+  - 文字列配列: `tags`
+  - 参照（コンテンツ参照）: `tag`（単数/複数どちらでもOK）
 
 ## ルーティング
 
@@ -54,11 +55,45 @@ SITE_URL=https://your-domain.example
 - **記事詳細**: `/:id/`
   - `content` 内の `h2` から目次を生成し、自動で `id` を付与します
 - **固定ページ**: `/page/:id/`
-  - `pages` エンドポイントのコンテンツIDで表示します
+  - 固定ページエンドポイントのコンテンツIDで表示します（未作成でもビルドは壊れません）
 - **カテゴリ別一覧**: `/category/[id]/`
 - **カテゴリ別一覧（2ページ目以降）**: `/category/[id]/page/[page]/`
 - **タグ別一覧**: `/tag/[id]/`
 - **タグ別一覧（2ページ目以降）**: `/tag/[id]/page/[page]/`
+
+## エンドポイント/スキーマ変更に強くするための仕組み
+
+このプロジェクトは、microCMS の **エンドポイント名・フィールド名**を直接ページに散らさず、
+以下に集約しています。
+
+- **マッピング（設定）**: `src/library/cms-config.ts`
+  - エンドポイント名・フィールド名のデフォルト値
+  - さらに環境変数で上書き可能
+- **正規化（normalize）**: `src/library/cms.ts`
+  - microCMS の返却形（参照/配列/文字列など）を吸収して、UIが扱う形を固定化
+
+### エンドポイント名を変えたい
+`src/library/cms-config.ts` の `endpoints` を編集するか、環境変数で上書きします。
+
+```env
+MICROCMS_ENDPOINT_POSTS=blogs
+MICROCMS_ENDPOINT_CATEGORIES=categories
+MICROCMS_ENDPOINT_TAGS=tags
+MICROCMS_ENDPOINT_PAGES=pages
+```
+
+### フィールド名を変えたい
+同様に `src/library/cms-config.ts` か、環境変数で上書きします（例）。
+
+```env
+MICROCMS_FIELD_POST_TITLE=title
+MICROCMS_FIELD_POST_CONTENT=content
+MICROCMS_FIELD_POST_EYECATCH=eyecatch
+MICROCMS_FIELD_POST_PUBLISHED_AT=publishedAt
+MICROCMS_FIELD_POST_CATEGORY=category
+MICROCMS_FIELD_POST_TAGS=tags
+MICROCMS_FIELD_POST_TAG=tag
+```
 
 ## コマンド
 
@@ -83,7 +118,7 @@ Environment variables に以下を登録してください。
 
 ## 実装メモ
 
-- **参照フィールドの展開**: カテゴリ/タグを表示するため、取得時に `depth: 1` を使っています。
+- **参照フィールドの展開**: カテゴリ/タグを表示するため、取得時に `depth: 1` を使っています（`src/library/cms.ts`）。
 - **タグ/カテゴリのリンク**: 一覧カード内でリンクをネストできないため、記事リンク（カード本体）とカテゴリ/タグリンクは分離しています。
 - **タグページの静的生成**: `/tag/[id]/` は全記事からタグ一覧を収集して `getStaticPaths()` を作るため、記事数が多い場合は生成コストが増えます。
 - **ページネーションの共通化**: `src/components/Pagination.astro` に切り出して、`basePath` と `currentPage/totalPages` を渡して使い回しています。

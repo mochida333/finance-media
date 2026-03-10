@@ -1,13 +1,13 @@
 ---
 import FormattedDate from "./FormattedDate.astro";
-import type { Category } from "../library/microcms";
+import type { CmsRef } from "../library/cms";
 
 interface Props {
   id: string;
   title: string;
   eyecatchUrl?: string;
   publishedAt?: string;
-  category?: Category | Category[];
+  category?: CmsRef | CmsRef[];
 }
 
 const { id, title, eyecatchUrl, publishedAt, category } = Astro.props as Props;

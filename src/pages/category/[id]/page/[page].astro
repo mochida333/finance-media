@@ -1,8 +1,7 @@
 ---
 import BlogPost from "../../../../layouts/BlogPost.astro";
 import Pagination from "../../../../components/Pagination.astro";
-import { getBlogs, getCategories, getCategoryDetail } from "../../../../library/microcms";
-import type { Blog } from "../../../../library/microcms";
+import { buildCategoryFilters, getCategoryIds, getCategoryLabel, getPostCards } from "../../../../library/cms";
 import PostCard from "../../../../components/PostCard.astro";
 
 const PER_PAGE = 9;
@@ -10,20 +9,13 @@ const PER_PAGE = 9;
 export async function getStaticPaths() {
   const perPage = 9;
 
-  const categoryIds: string[] = [];
-  let offset = 0;
-  while (true) {
-    const res = await getCategories({ fields: ["id"], limit: 100, offset });
-    categoryIds.push(...res.contents.map((c) => c.id));
-    offset += res.limit;
-    if (offset >= res.totalCount) break;
-  }
+  const categoryIds = await getCategoryIds();
 
   const paths: Array<{ params: { id: string; page: string } }> = [];
 
   for (const id of categoryIds) {
-    const filters = `category[equals]${id}[or]category[contains]${id}`;
-    const res = await getBlogs({ fields: ["id"], filters, limit: 1, offset: 0 });
+    const filters = buildCategoryFilters(id);
+    const res = await getPostCards({ filters, limit: 1, offset: 0 });
     const totalPages = Math.ceil(res.totalCount / perPage);
     for (let page = 2; page <= totalPages; page++) {
       paths.push({ params: { id, page: String(page) } });
@@ -38,23 +30,21 @@ const page = Number(pageParam);
 if (!id) throw new Error("Missing route param: id");
 if (!Number.isFinite(page) || page < 2) throw new Error(`Invalid page param: ${pageParam}`);
 
-const category = await getCategoryDetail(id, { fields: ["id", "name"] });
+const categoryLabel = await getCategoryLabel(id);
 
-const filters = `category[equals]${id}[or]category[contains]${id}`;
-const response = await getBlogs({
-  fields: ["id", "title", "eyecatch", "publishedAt", "category"],
-  depth: 1,
+const filters = buildCategoryFilters(id);
+const response = await getPostCards({
   filters,
   limit: PER_PAGE,
   offset: (page - 1) * PER_PAGE,
 });
 
 const totalPages = Math.ceil(response.totalCount / PER_PAGE);
-const posts = response.contents as Blog[];
+const posts = response.cards;
 ---
 
 <BlogPost
-  title={`カテゴリ: ${category.name ?? category.id} (ページ ${page})`}
+  title={`カテゴリ: ${categoryLabel} (ページ ${page})`}
   description="andco finance"
   pubDate={new Date()}
 >
@@ -65,9 +55,9 @@ const posts = response.contents as Blog[];
           <PostCard
             id={post.id}
             title={post.title}
-            eyecatchUrl={post.eyecatch?.url}
+            eyecatchUrl={post.eyecatchUrl}
             publishedAt={post.publishedAt}
-            category={post.category}
+            category={post.categories}
           />
         );
       })}
