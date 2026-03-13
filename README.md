@@ -183,10 +183,18 @@ node scripts/wp-import.mjs --xml "/path/to/export.xml" --apply --use-slug-as-con
 
 ### 4) 画像も含めて完全移行する（推奨）
 
-Management API の権限で **「メディアのアップロード」** を有効にしたAPIキー（`MICROCMS_MANAGEMENT_API_KEY`）を用意して、以下を実行します。
+Management API の権限で **「メディアのアップロード」** を有効にしたAPIキー（`finance.andco.group`）を用意して、以下を実行します。
 
 ```sh
 node scripts/wp-import.mjs --xml "/path/to/export.xml" --apply --create-categories --create-tags --upload-media
 ```
 
 デフォルトでは `wp-content/uploads` 配下っぽいURLだけをアップロードします。外部画像も含めて全てアップロードしたい場合は `--upload-all-remote-images` を付けてください。
+
+Management API は 10回/10秒 のレート制限があるため、画像アップロード間に 1.2 秒の待機を入れています。429 が出た場合は 11 秒待ってリトライします。さらに遅くしたい場合は `--media-upload-delay 2000` などで指定できます。
+
+**移設でドメインが変わった場合**（例: エクスポート元 `www.andco.group/finance` → 移設先 `finance.andco.group`）は、旧URLが404になるため `--rewrite-image-url` で取得元を差し替えてください。
+
+```sh
+node scripts/wp-import.mjs --xml "/path/to/export.xml" --apply --upload-media --rewrite-image-url 'https://www.andco.group/finance|https://finance.andco.group'
+```
