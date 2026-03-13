@@ -6,14 +6,6 @@ import BlogPost from '../../../layouts/BlogPost.astro';
 
 const PER_PAGE = 9;
 
-export async function getStaticPaths() {
-	const PER_PAGE = 9;
-	const res = await getPostCards({ limit: 1, offset: 0 });
-	const totalPages = Math.ceil(res.totalCount / PER_PAGE);
-	const pages = Array.from({ length: totalPages }, (_, i) => i + 1).filter((p) => p >= 2);
-	return pages.map((page) => ({ params: { page: String(page) } }));
-}
-
 const pageParam = Astro.params.page;
 const page = Number(pageParam);
 if (!Number.isFinite(page) || page < 2) {
@@ -26,6 +18,10 @@ const response = await getPostCards({ limit: PER_PAGE, offset });
 
 const totalPages = Math.ceil(response.totalCount / PER_PAGE);
 const posts = response.cards;
+
+if (totalPages && page > totalPages) {
+	Astro.response.status = 404;
+}
 ---
 
 <BlogPost

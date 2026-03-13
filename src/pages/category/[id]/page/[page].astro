@@ -1,29 +1,10 @@
 ---
 import BlogPost from "../../../../layouts/BlogPost.astro";
 import Pagination from "../../../../components/Pagination.astro";
-import { buildCategoryFilters, getCategoryIds, getCategoryLabel, getPostCards } from "../../../../library/cms";
+import { buildCategoryFilters, getCategoryLabel, getPostCards } from "../../../../library/cms";
 import PostCard from "../../../../components/PostCard.astro";
 
 const PER_PAGE = 9;
-
-export async function getStaticPaths() {
-  const perPage = 9;
-
-  const categoryIds = await getCategoryIds();
-
-  const paths: Array<{ params: { id: string; page: string } }> = [];
-
-  for (const id of categoryIds) {
-    const filters = buildCategoryFilters(id);
-    const res = await getPostCards({ filters, limit: 1, offset: 0 });
-    const totalPages = Math.ceil(res.totalCount / perPage);
-    for (let page = 2; page <= totalPages; page++) {
-      paths.push({ params: { id, page: String(page) } });
-    }
-  }
-
-  return paths;
-}
 
 const { id, page: pageParam } = Astro.params;
 const page = Number(pageParam);
@@ -41,6 +22,10 @@ const response = await getPostCards({
 
 const totalPages = Math.ceil(response.totalCount / PER_PAGE);
 const posts = response.cards;
+
+if (totalPages && page > totalPages) {
+  Astro.response.status = 404;
+}
 ---
 
 <BlogPost

@@ -103,21 +103,26 @@ export const buildTagFilters = (tagId: string) => {
   return parts.join("[or]");
 };
 
+let allPostIdsPromise: Promise<string[]> | null = null;
 export async function getAllPostIds() {
-  const ids: string[] = [];
-  let offset = 0;
-  const limit = 100;
-  while (true) {
-    const res = await getList<AnyRecord>(cmsConfig.endpoints.posts, {
-      fields: ["id"],
-      limit,
-      offset,
-    });
-    ids.push(...(res.contents ?? []).map((c: AnyRecord) => c.id).filter(Boolean));
-    offset += res.limit;
-    if (offset >= res.totalCount) break;
-  }
-  return ids;
+  if (allPostIdsPromise) return await allPostIdsPromise;
+  allPostIdsPromise = (async () => {
+    const ids: string[] = [];
+    let offset = 0;
+    const limit = 100;
+    while (true) {
+      const res = await getList<AnyRecord>(cmsConfig.endpoints.posts, {
+        fields: ["id"],
+        limit,
+        offset,
+      });
+      ids.push(...(res.contents ?? []).map((c: AnyRecord) => c.id).filter(Boolean));
+      offset += res.limit;
+      if (offset >= res.totalCount) break;
+    }
+    return ids;
+  })();
+  return await allPostIdsPromise;
 }
 
 export async function getPostCards(params: {
@@ -211,20 +216,26 @@ export async function getPostDetail(id: string) {
 }
 
 export async function getCategoryIds() {
-  const ids: string[] = [];
-  let offset = 0;
-  while (true) {
-    const res = await getList<AnyRecord>(cmsConfig.endpoints.categories, {
-      fields: ["id"],
-      limit: 100,
-      offset,
-    });
-    ids.push(...(res.contents ?? []).map((c: AnyRecord) => c.id).filter(Boolean));
-    offset += res.limit;
-    if (offset >= res.totalCount) break;
-  }
-  return ids;
+  if (getCategoryIdsPromise) return await getCategoryIdsPromise;
+  getCategoryIdsPromise = (async () => {
+    const ids: string[] = [];
+    let offset = 0;
+    while (true) {
+      const res = await getList<AnyRecord>(cmsConfig.endpoints.categories, {
+        fields: ["id"],
+        limit: 100,
+        offset,
+      });
+      ids.push(...(res.contents ?? []).map((c: AnyRecord) => c.id).filter(Boolean));
+      offset += res.limit;
+      if (offset >= res.totalCount) break;
+    }
+    return ids;
+  })();
+  return await getCategoryIdsPromise;
 }
+
+let getCategoryIdsPromise: Promise<string[]> | null = null;
 
 export async function getCategoryLabel(id: string) {
   const f = cmsConfig.fields.category.name;
@@ -247,6 +258,33 @@ export async function getTagNameSafe(tagId: string) {
   } catch {
     return tagId;
   }
+}
+
+let getTagIdsPromise: Promise<string[]> | null = null;
+/**
+ * タグID一覧を取得します。
+ * tags エンドポイントがある場合は tags から取得し（高速）、
+ * 無い場合は posts をスキャンして推測します（低速）。
+ */
+export async function getTagIds() {
+  if (getTagIdsPromise) return await getTagIdsPromise;
+  getTagIdsPromise = (async () => {
+    const endpoint = cmsConfig.endpoints.tags;
+    if (endpoint) {
+      const ids: string[] = [];
+      let offset = 0;
+      const limit = 100;
+      while (true) {
+        const res = await getList<AnyRecord>(endpoint, { fields: ["id"], limit, offset });
+        ids.push(...(res.contents ?? []).map((c: AnyRecord) => c.id).filter(Boolean));
+        offset += res.limit;
+        if (offset >= res.totalCount) break;
+      }
+      return ids;
+    }
+    return await collectTagIdsFromAllPosts();
+  })();
+  return await getTagIdsPromise;
 }
 
 export async function collectTagIdsFromAllPosts() {

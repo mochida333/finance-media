@@ -1,12 +1,7 @@
 ---
 import BlogPost from "../layouts/BlogPost.astro";
 import TableOfContents from "../components/TableOfContents.astro";
-import { getAllPostIds, getPostDetail } from "../library/cms";
-
-export async function getStaticPaths() {
-  const ids = await getAllPostIds();
-  return ids.map((id) => ({ params: { id } }));
-}
+import { getPostDetail } from "../library/cms";
 
 const { id } = Astro.params;
 if (!id) {

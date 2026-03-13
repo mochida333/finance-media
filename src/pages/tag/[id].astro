@@ -2,14 +2,9 @@
 import BlogPost from "../../layouts/BlogPost.astro";
 import Pagination from "../../components/Pagination.astro";
 import PostCard from "../../components/PostCard.astro";
-import { buildTagFilters, collectTagIdsFromAllPosts, getPostCards, getTagNameSafe } from "../../library/cms";
+import { buildTagFilters, getPostCards, getTagNameSafe } from "../../library/cms";
 
 const PER_PAGE = 9;
-
-export async function getStaticPaths() {
-  const tagIds = await collectTagIdsFromAllPosts();
-  return tagIds.map((id) => ({ params: { id: encodeURIComponent(id) } }));
-}
 
 
 const rawParam = Astro.params.id;

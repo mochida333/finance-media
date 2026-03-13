@@ -2,27 +2,9 @@
 import BlogPost from '../../../../layouts/BlogPost.astro';
 import Pagination from '../../../../components/Pagination.astro';
 import PostCard from '../../../../components/PostCard.astro';
-import { buildTagFilters, collectTagIdsFromAllPosts, getPostCards, getTagNameSafe } from '../../../../library/cms';
+import { buildTagFilters, getPostCards, getTagNameSafe } from '../../../../library/cms';
 
 const PER_PAGE = 9;
-
-export async function getStaticPaths() {
-	const tagIds = await collectTagIdsFromAllPosts();
-
-	const paths: Array<{ params: { id: string; page: string } }> = [];
-	const perPage = 9;
-
-	for (const tagId of tagIds) {
-		const filters = buildTagFilters(tagId);
-		const res = await getPostCards({ filters, limit: 1, offset: 0 });
-		const totalPages = Math.ceil(res.totalCount / perPage);
-		for (let page = 2; page <= totalPages; page++) {
-			paths.push({ params: { id: encodeURIComponent(tagId), page: String(page) } });
-		}
-	}
-
-	return paths;
-}
 
 const rawIdParam = Astro.params.id;
 const pageParam = Astro.params.page;
@@ -45,6 +27,10 @@ const response = await getPostCards({
 
 const totalPages = Math.ceil(response.totalCount / PER_PAGE);
 const posts = response.cards;
+
+if (totalPages && page > totalPages) {
+	Astro.response.status = 404;
+}
 ---
 
 <BlogPost title={`タグ: ${tagName} (ページ ${page})`} description="andco finance" pubDate={new Date()}>

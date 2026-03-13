@@ -2,6 +2,8 @@
 
 Astro + microCMS で構築している記事メディアです。
 
+**SSR（オンデマンドレンダリング）** で動作する構成です（Cloudflare Pages）。
+
 ## セットアップ
 
 ```sh
@@ -24,7 +26,8 @@ MICROCMS_MANAGEMENT_API_KEY=xxxxxxxxxxxxxxxx
 SITE_URL=https://your-domain.example
 ```
 
-> 補足: `MICROCMS_SERVICE_DOMAIN` / `MICROCMS_API_KEY` が未設定でも `npm run build` は通ります（一覧などは空表示になります）。
+> 補足: `MICROCMS_SERVICE_DOMAIN` / `MICROCMS_API_KEY` が未設定でも `npm run build` は通ります（一覧などは空表示になります）。  
+> SSR なので microCMS の変更は **再デプロイ不要で即時反映**されます（キャッシュが無ければ）。
 
 ## microCMS 側の想定（最低限）
 

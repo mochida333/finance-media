@@ -1,11 +1,6 @@
 ---
 import BlogPost from "../../layouts/BlogPost.astro";
-import { getPageDetail, getPageIdsSafe } from "../../library/cms";
-
-export async function getStaticPaths() {
-  const ids = await getPageIdsSafe();
-  return ids.map((id) => ({ params: { id } }));
-}
+import { getPageDetail } from "../../library/cms";
 
 const { id } = Astro.params;
 if (!id) {
