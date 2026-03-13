@@ -1,22 +1,18 @@
 ---
-export const prerender = true;
+export const prerender = false;
 
-import BlogPost from "../layouts/BlogPost.astro";
-import TableOfContents from "../components/TableOfContents.astro";
-import { getPostDetail } from "../library/cms";
-import { getAllPostIds } from "../library/cms";
-
-export async function getStaticPaths() {
-  const ids = await getAllPostIds();
-  return ids.map((id) => ({ params: { id } }));
-}
+import BlogPost from "../../layouts/BlogPost.astro";
+import TableOfContents from "../../components/TableOfContents.astro";
+import { getPostDetail } from "../../library/cms";
 
 const { id } = Astro.params;
-if (!id) {
-  throw new Error("Missing route param: id");
-}
+if (!id) throw new Error("Missing route param: id");
 
 const draftKey = Astro.url.searchParams.get("draftKey");
+if (!draftKey) {
+  Astro.response.status = 400;
+}
+
 let post: Awaited<ReturnType<typeof getPostDetail>> | null = null;
 try {
   post = await getPostDetail(id, { draftKey });
@@ -59,54 +55,44 @@ const tags = post?.tags ?? [];
 ---
 
 {post ? (
-<BlogPost title={post.title} description={post.title} pubDate={new Date()}>
-  {post.eyecatch?.url && (
-    <div class="hero-image">
-      <img
-        src={post.eyecatch.url}
-        width={post.eyecatch.width}
-        height={post.eyecatch.height}
-        alt={post.title}
-        loading="lazy"
-      />
-    </div>
-  )}
-  <TableOfContents items={tocItems} />
-  <div class="body" set:html={contentHtml} />
+  <BlogPost title={`[Preview] ${post.title}`} description={post.title} pubDate={new Date()}>
+    <TableOfContents items={tocItems} />
+    <div class="body" set:html={contentHtml} />
 
-  <section class="footer-meta">
-    {categories.length ? (
-      <section class="meta">
-        <h2 class="meta-title">カテゴリ</h2>
-        <ul class="chips">
-          {categories.map((cat) => (
-            <li>
-              <a class="chip" href={`/category/${cat.id}/`}>{cat.name ?? cat.id}</a>
-            </li>
-          ))}
-        </ul>
-      </section>
-    ) : null}
+    <section class="footer-meta">
+      {categories.length ? (
+        <section class="meta">
+          <h2 class="meta-title">カテゴリ</h2>
+          <ul class="chips">
+            {categories.map((cat) => (
+              <li>
+                <a class="chip" href={`/category/${cat.id}/`}>{cat.name ?? cat.id}</a>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
 
-    {tags.length ? (
-      <section class="meta">
-        <h2 class="meta-title">タグ</h2>
-        <ul class="chips">
-          {tags.map((tag) => (
-            <li>
-              <a class="chip" href={`/tag/${encodeURIComponent(tag.id)}/`}>{tag.label}</a>
-            </li>
-          ))}
-        </ul>
-      </section>
-    ) : null}
-  </section>
-</BlogPost>
-):(
-  <BlogPost title="Not Found" description="Not Found" pubDate={new Date()}>
+      {tags.length ? (
+        <section class="meta">
+          <h2 class="meta-title">タグ</h2>
+          <ul class="chips">
+            {tags.map((tag) => (
+              <li>
+                <a class="chip" href={`/tag/${encodeURIComponent(tag.id)}/`}>{tag.label}</a>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
+    </section>
+  </BlogPost>
+) : (
+  <BlogPost title="Preview Not Found" description="Preview Not Found" pubDate={new Date()}>
     <div class="body">
       <h1>Not Found</h1>
-      <p>記事が見つかりませんでした。</p>
+      <p>下書きプレビューを取得できませんでした。</p>
+      {!draftKey ? <p>`draftKey` が付いていません。</p> : null}
     </div>
   </BlogPost>
 )}

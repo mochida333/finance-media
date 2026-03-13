@@ -1,11 +1,9 @@
-import { env as cfEnv } from "cloudflare:workers";
-
-export function getRuntimeEnv(key: string): string | undefined {
+export function getBuildTimeEnv(key: string): string | undefined {
   const fromVite = (import.meta as any)?.env?.[key];
   if (typeof fromVite === "string" && fromVite.trim().length) return fromVite;
 
-  const fromCf = (cfEnv as any)?.[key];
-  if (typeof fromCf === "string" && fromCf.trim().length) return fromCf;
+  const fromNode = (globalThis as any)?.process?.env?.[key];
+  if (typeof fromNode === "string" && fromNode.trim().length) return fromNode;
 
   return undefined;
 }

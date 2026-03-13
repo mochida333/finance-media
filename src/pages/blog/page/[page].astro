@@ -1,10 +1,19 @@
 ---
+export const prerender = true;
+
 import Pagination from '../../../components/Pagination.astro';
 import PostCard from '../../../components/PostCard.astro';
 import { getPostCards } from '../../../library/cms';
 import BlogPost from '../../../layouts/BlogPost.astro';
 
 const PER_PAGE = 9;
+
+export async function getStaticPaths() {
+	const res = await getPostCards({ limit: 1, offset: 0 });
+	const totalPages = Math.ceil(res.totalCount / 9);
+	const pages = Array.from({ length: totalPages }, (_, i) => i + 1).filter((p) => p >= 2);
+	return pages.map((page) => ({ params: { page: String(page) } }));
+}
 
 const pageParam = Astro.params.page;
 const page = Number(pageParam);
@@ -18,10 +27,6 @@ const response = await getPostCards({ limit: PER_PAGE, offset });
 
 const totalPages = Math.ceil(response.totalCount / PER_PAGE);
 const posts = response.cards;
-
-if (totalPages && page > totalPages) {
-	Astro.response.status = 404;
-}
 ---
 
 <BlogPost

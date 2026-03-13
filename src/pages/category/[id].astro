@@ -1,10 +1,17 @@
 ---
+export const prerender = true;
+
 import BlogPost from "../../layouts/BlogPost.astro";
 import Pagination from "../../components/Pagination.astro";
-import { buildCategoryFilters, getCategoryLabel, getPostCards } from "../../library/cms";
+import { buildCategoryFilters, getCategoryIds, getCategoryLabel, getPostCards } from "../../library/cms";
 import PostCard from "../../components/PostCard.astro";
 
 const PER_PAGE = 9;
+
+export async function getStaticPaths() {
+  const ids = await getCategoryIds();
+  return ids.map((id) => ({ params: { id } }));
+}
 
 const { id } = Astro.params;
 if (!id) throw new Error("Missing route param: id");

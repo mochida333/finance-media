@@ -1,16 +1,21 @@
 ---
+export const prerender = true;
+
 import BlogPost from "../../layouts/BlogPost.astro";
-import { getPageDetail } from "../../library/cms";
+import { getPageDetail, getPageIdsSafe } from "../../library/cms";
+
+export async function getStaticPaths() {
+  const ids = await getPageIdsSafe();
+  return ids.map((id) => ({ params: { id } }));
+}
 
 const { id } = Astro.params;
 if (!id) {
   throw new Error("Missing route param: id");
 }
 
-const draftKey = Astro.url.searchParams.get("draftKey");
 let page: Awaited<ReturnType<typeof getPageDetail>> | null = null;
 try {
-  // getPageDetail は draftKey 対応していないので、下書きプレビューが必要なら cms.ts 側も対応する
   page = await getPageDetail(id as string);
 } catch {
   Astro.response.status = 404;

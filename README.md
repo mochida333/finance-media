@@ -2,7 +2,7 @@
 
 Astro + microCMS で構築している記事メディアです。
 
-**SSR（オンデマンドレンダリング）** で動作する構成です（Cloudflare Pages）。
+基本は **SSG（静的生成）**、下書きプレビュー用に **`/preview/:id` だけ SSR** で動作する構成です（Cloudflare Pages）。
 
 ## セットアップ
 
@@ -26,8 +26,7 @@ MICROCMS_MANAGEMENT_API_KEY=xxxxxxxxxxxxxxxx
 SITE_URL=https://your-domain.example
 ```
 
-> 補足: `MICROCMS_SERVICE_DOMAIN` / `MICROCMS_API_KEY` が未設定でも `npm run build` は通ります（一覧などは空表示になります）。  
-> SSR なので microCMS の変更は **再デプロイ不要で即時反映**されます（キャッシュが無ければ）。
+> 補足: `MICROCMS_SERVICE_DOMAIN` / `MICROCMS_API_KEY` が未設定でも `npm run build` は通ります（一覧などは空表示になります）。
 
 ## microCMS 側の想定（最低限）
 
@@ -106,7 +105,7 @@ MICROCMS_FIELD_POST_TAG=tag
 | `npm run build` | 本番ビルド（`./dist/`） |
 | `npm run preview` | ビルド結果のプレビュー |
 
-## Cloudflare Pages（SSG）にデプロイ
+## Cloudflare Pages（基本SSG + プレビューSSR）にデプロイ
 
 Cloudflare Pages のプロジェクト設定で以下を指定します。
 
@@ -119,11 +118,14 @@ Environment variables に以下を登録してください。
 - `MICROCMS_API_KEY`
 - `SITE_URL`（任意だが推奨）
 
+> 公開ページ（SSG）は、microCMS 側の更新/公開/削除は **再ビルド/再デプロイ後に反映**されます。  
+> 下書きプレビューは `/preview/:id?draftKey=...` を SSR で表示します。
+
 ## 実装メモ
 
 - **参照フィールドの展開**: カテゴリ/タグを表示するため、取得時に `depth: 1` を使っています（`src/library/cms.ts`）。
 - **タグ/カテゴリのリンク**: 一覧カード内でリンクをネストできないため、記事リンク（カード本体）とカテゴリ/タグリンクは分離しています。
-- **タグページの静的生成**: `/tag/[id]/` は全記事からタグ一覧を収集して `getStaticPaths()` を作るため、記事数が多い場合は生成コストが増えます。
+- **プレビュー**: `/preview/:id` は `prerender = false` のSSRで、`draftKey` を受け取って下書きを表示します。
 - **ページネーションの共通化**: `src/components/Pagination.astro` に切り出して、`basePath` と `currentPage/totalPages` を渡して使い回しています。
 - **記事カードの共通化**: 一覧のカードUIは `src/components/PostCard.astro` にまとめています。
 - **目次（Table of Contents）**: `src/components/TableOfContents.astro` を利用して、記事本文の `h2` を元に目次を表示します。
