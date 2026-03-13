@@ -1,8 +1,9 @@
 import type { MicroCMSQueries } from "microcms-js-sdk";
 import { createClient } from "microcms-js-sdk";
+import { getRuntimeEnv } from "./runtime-env";
 
-const serviceDomain = import.meta.env.MICROCMS_SERVICE_DOMAIN;
-const apiKey = import.meta.env.MICROCMS_API_KEY;
+const serviceDomain = getRuntimeEnv("MICROCMS_SERVICE_DOMAIN");
+const apiKey = getRuntimeEnv("MICROCMS_API_KEY");
 const enabled = Boolean(
   typeof serviceDomain === "string" &&
     serviceDomain.trim().length &&

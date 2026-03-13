@@ -30,13 +30,15 @@ export type CmsConfig = {
   };
 };
 
+import { getRuntimeEnv } from "./runtime-env";
+
 const envString = (key: string, fallback: string) => {
-  const v = (import.meta.env as any)?.[key];
+  const v = getRuntimeEnv(key) ?? (import.meta.env as any)?.[key];
   return typeof v === "string" && v.trim().length ? v : fallback;
 };
 
 const envOptionalString = (key: string, fallback: string | null) => {
-  const v = (import.meta.env as any)?.[key];
+  const v = getRuntimeEnv(key) ?? (import.meta.env as any)?.[key];
   if (v === null || v === undefined) return fallback;
   if (typeof v !== "string") return fallback;
   const s = v.trim();
