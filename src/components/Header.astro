@@ -17,9 +17,8 @@ const pageLinks = headerPages
 	<nav>
 		<h2><a href="/">{SITE_TITLE}</a></h2>
 		<ul class="internal-links">
-			{pageLinks.map((p) => (
-				<HeaderLink href={p.href}>{p.label}</HeaderLink>
-			))}
+			<HeaderLink href="/">Home</HeaderLink>
+			<HeaderLink href="/blog/">Blog</HeaderLink>
 		</ul>
 		<div class="social-links">
 			<a href="https://m.webtoo.ls/@astro" target="_blank">
