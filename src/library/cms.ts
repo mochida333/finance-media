@@ -157,7 +157,7 @@ export async function getPostCards(params: {
   return { ...res, cards };
 }
 
-export async function getPostDetail(id: string) {
+export async function getPostDetail(id: string, opts?: { draftKey?: string | null }) {
   const f = cmsConfig.fields.post;
   const fields = uniq([
     "id",
@@ -171,7 +171,11 @@ export async function getPostDetail(id: string) {
     f.tag ?? null,
   ]);
 
-  const raw = await getListDetail<AnyRecord>(cmsConfig.endpoints.posts, id, { fields, depth: 1 });
+  const raw = await getListDetail<AnyRecord>(cmsConfig.endpoints.posts, id, {
+    fields,
+    depth: 1,
+    ...(opts?.draftKey ? { draftKey: opts.draftKey } : {}),
+  });
   const title = String(getField(raw, f.title) ?? raw.id ?? "");
   const contentHtml = String(getField(raw, f.content) ?? "");
   const eyecatch = normalizeEyecatch(getField(raw, f.eyecatch));

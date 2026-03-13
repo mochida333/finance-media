@@ -7,16 +7,33 @@ if (!id) {
   throw new Error("Missing route param: id");
 }
 
-const page = await getPageDetail(id);
+const draftKey = Astro.url.searchParams.get("draftKey");
+let page: Awaited<ReturnType<typeof getPageDetail>> | null = null;
+try {
+  // getPageDetail は draftKey 対応していないので、下書きプレビューが必要なら cms.ts 側も対応する
+  page = await getPageDetail(id as string);
+} catch {
+  Astro.response.status = 404;
+  page = null;
+}
 ---
 
-<BlogPost
-  title={page.title ?? page.id ?? "Page"}
-  description={page.title ?? page.id ?? "Page"}
-  pubDate={new Date()}
->
-  <div class="body" set:html={page.contentHtml ?? ""} />
-</BlogPost>
+{page ? (
+  <BlogPost
+    title={page.title ?? page.id ?? "Page"}
+    description={page.title ?? page.id ?? "Page"}
+    pubDate={new Date()}
+  >
+    <div class="body" set:html={page.contentHtml ?? ""} />
+  </BlogPost>
+) : (
+  <BlogPost title="Not Found" description="Not Found" pubDate={new Date()}>
+    <div class="body">
+      <h1>Not Found</h1>
+      <p>ページが見つかりませんでした。</p>
+    </div>
+  </BlogPost>
+)}
 
 <style>
   .body :global(img) {

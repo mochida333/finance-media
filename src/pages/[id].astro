@@ -8,7 +8,14 @@ if (!id) {
   throw new Error("Missing route param: id");
 }
 
-const post = await getPostDetail(id);
+const draftKey = Astro.url.searchParams.get("draftKey");
+let post: Awaited<ReturnType<typeof getPostDetail>> | null = null;
+try {
+  post = await getPostDetail(id, { draftKey });
+} catch {
+  Astro.response.status = 404;
+  post = null;
+}
 
 const buildToc = (html: string) => {
   const items: Array<{ id: string; text: string }> = [];
@@ -38,11 +45,12 @@ const buildToc = (html: string) => {
   return { html: withIds, items };
 };
 
-const { html: contentHtml, items: tocItems } = buildToc(post.contentHtml ?? "");
-const categories = post.categories ?? [];
-const tags = post.tags ?? [];
+const { html: contentHtml, items: tocItems } = buildToc(post?.contentHtml ?? "");
+const categories = post?.categories ?? [];
+const tags = post?.tags ?? [];
 ---
 
+{post ? (
 <BlogPost title={post.title} description={post.title} pubDate={new Date()}>
   {post.eyecatch?.url && (
     <div class="hero-image">
@@ -86,6 +94,14 @@ const tags = post.tags ?? [];
     ) : null}
   </section>
 </BlogPost>
+):(
+  <BlogPost title="Not Found" description="Not Found" pubDate={new Date()}>
+    <div class="body">
+      <h1>Not Found</h1>
+      <p>記事が見つかりませんでした。</p>
+    </div>
+  </BlogPost>
+)}
 
 <style>
   .body :global(img) {
